@@ -1,0 +1,53 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: ../app
+    environment:
+      DATABASE_URL: postgres://app:app@db:5432/app
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+  importer:
+    build:
+      context: ../import
+    environment:
+      DATABASE_URL: postgres://app:app@db:5432/app
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../schema:/schema:ro
+      - ../data:/data
+
+  k6:
+    image: grafana/k6:0.49.0
+    depends_on:
+      - api
+    environment:
+      BASE_URL: http://api:8080
+    volumes:
+      - ../workload:/workload
+    entrypoint: ["tail", "-f", "/dev/null"]  # keep container idle; run tests via `docker compose run --rm k6 ...`
+
+volumes:
+  pgdata:
