@@ -11,7 +11,6 @@ out.write("tenant_id,user_id,ts,kind,payload\n");
 function rand(n: number) { return Math.floor(Math.random() * n); }
 function iso(ms: number) { return new Date(ms).toISOString(); }
 function csvEscape(raw: string) {
- // Wrap in double quotes and double any inner quotes per RFC4180
  return `"${raw.replace(/"/g, '""')}"`;
 }
 
@@ -22,10 +21,7 @@ const kinds = ["click", "view", "add_to_cart", "checkout"];
   const user_id = rand(1_000_000) + 1;
   const ts = iso(start + i * 1000);
   const kind = kinds[rand(kinds.length)];
-
-  const payloadJSON = JSON.stringify({ sku: "SKU" + (i % 5000), v: Math.random() });
-  const payloadCSV = csvEscape(payloadJSON);
-
+  const payloadCSV = csvEscape(JSON.stringify({ sku: "SKU" + (i % 5000), v: Math.random() }));
   out.write(`${tenant_id},${user_id},${ts},${kind},${payloadCSV}\n`);
   if (i % 100000 === 0 && i > 0) process.stdout.write(`generated ${i}\r`);
  }

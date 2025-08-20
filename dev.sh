@@ -10,8 +10,8 @@ case "$1" in
   up-dev)    $COMPOSE_DEV up -d --build ;;
   down-dev)  $COMPOSE_DEV down -v ;;
   logs-dev)  $COMPOSE_DEV logs -f api ;;
-  import)    $COMPOSE_BASE run --rm importer ;;
-  baseline)  $COMPOSE_BASE run --rm k6 k6 run /workload/read_write.js ;;
+  import)  $COMPOSE_DEV run --rm importer;; 
+   baseline)  $COMPOSE_BASE run --rm k6 k6 run /workload/read_write.js ;;
   health)    curl -s http://localhost:8080/health || true ;;
   *)
     echo "Usage: $0 {up|down|up-dev|down-dev|logs-dev|import|baseline|health}"; exit 1;;
