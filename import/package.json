@@ -5,7 +5,8 @@
   "scripts": {
     "build": "tsc -p .",
     "dev": "ts-node-dev --respawn src/import.ts",
-    "gen:run": "node dist/gen.js"
+    "gen:run": "node dist/gen.js",
+    "import:rr": "node dist/import_retailrocket.js"
   },
   "dependencies": {
     "csv-parse": "^5.5.6",
