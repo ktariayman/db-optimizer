@@ -1,19 +1,12 @@
-import { MongoClient, Db, Collection } from "mongodb";
+import { MongoClient, Collection } from "mongodb";
 
 const url = process.env.MONGO_URL!;
-let client: MongoClient;
-let db: Db;
+let client: MongoClient | null = null;
 
-export async function getDb(): Promise<Db> {
+export async function eventsRR(): Promise<Collection> {
  if (!client) {
   client = new MongoClient(url);
   await client.connect();
-  db = client.db(); // database from URL
  }
- return db;
-}
-
-export async function events(): Promise<Collection> {
- const d = await getDb();
- return d.collection("events");
+ return client.db().collection("events_rr");
 }
