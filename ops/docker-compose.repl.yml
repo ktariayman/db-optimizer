@@ -1,0 +1,77 @@
+services:
+  mongo1:
+    image: mongo:7
+    hostname: mongo1
+    command: ['mongod', '--replSet=rs0', '--bind_ip_all']
+    volumes: [mongodata1:/data/db]
+    healthcheck:
+      test: ['CMD-SHELL', "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mongo2:
+    image: mongo:7
+    hostname: mongo2
+    command: ['mongod', '--replSet=rs0', '--bind_ip_all']
+    volumes: [mongodata2:/data/db]
+    healthcheck:
+      test: ['CMD-SHELL', "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  arbiter:
+    image: mongo:7
+    hostname: arbiter
+    command: ['mongod', '--replSet=rs0', '--bind_ip_all']
+    volumes: [mongodata_arb:/data/db]
+    healthcheck:
+      test: ['CMD-SHELL', "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # one-shot: initialize replica set
+  mongo-setup:
+    image: mongo:7
+    depends_on:
+      mongo1: { condition: service_healthy }
+      mongo2: { condition: service_healthy }
+      arbiter: { condition: service_healthy }
+    entrypoint: ['bash', '-lc']
+    command: >
+      '
+      echo "Initiating rs0...";
+      mongosh --host mongo1 --quiet --eval "
+        rs.initiate({
+          _id: \"rs0\",
+          members: [
+            { _id: 0, host: \"mongo1:27017\" },
+            { _id: 1, host: \"mongo2:27017\" },
+            { _id: 2, host: \"arbiter:27017\", arbiterOnly: true }
+          ]
+        });
+        while (!rs.isMaster().ismaster) { sleep(100); }
+        rs.status();
+      ";
+      echo "Replica set ready.";
+      '
+
+  # point your API/importer to the replica set URI (no auth in this quick demo)
+  api:
+    environment:
+      MONGO_URL: mongodb://mongo1:27017,mongo2:27017,arbiter:27017/app?replicaSet=rs0
+    depends_on:
+      mongo-setup: { condition: service_completed_successfully }
+
+  importer:
+    environment:
+      MONGO_URL: mongodb://mongo1:27017,mongo2:27017,arbiter:27017/app?replicaSet=rs0
+    depends_on:
+      mongo-setup: { condition: service_completed_successfully }
+
+volumes:
+  mongodata1:
+  mongodata2:
+  mongodata_arb:

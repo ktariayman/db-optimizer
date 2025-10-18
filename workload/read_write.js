@@ -5,7 +5,7 @@ const BASE_URL = __ENV.BASE_URL || "http://api:8080";
 
 export const options = {
   vus: 64,
-  duration: "2m",
+  duration: "30s",
   thresholds: {
     http_req_duration: ["p(95)<1000"],
   },

@@ -1,12 +1,29 @@
-import { MongoClient, Collection } from "mongodb";
+import { MongoClient, Db, Collection, ReadPreference } from "mongodb";
 
 const url = process.env.MONGO_URL!;
-let client: MongoClient | null = null;
+let client: MongoClient;
+let db: Db;
 
-export async function eventsRR(): Promise<Collection> {
+export async function getDb(): Promise<Db> {
  if (!client) {
-  client = new MongoClient(url);
+  client = new MongoClient(url, {
+   maxPoolSize: 50,
+   serverSelectionTimeoutMS: 10000,
+   connectTimeoutMS: 10000,
+  });
   await client.connect();
+  db = client.db();
  }
- return client.db().collection("events_rr");
+ return db;
+}
+
+// Writes: default (primary)
+export async function eventsPrimary(): Promise<Collection> {
+ const d = await getDb();
+ return d.collection("events_rr");
+}
+
+export async function eventsSecondaryPreferred(): Promise<Collection> {
+ const d = await getDb();
+ return d.collection("events_rr", { readPreference: ReadPreference.SECONDARY_PREFERRED });
 }
