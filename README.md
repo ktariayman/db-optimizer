@@ -1,88 +1,186 @@
-# DB Performance Lab (Docker-first)
+# Database Performance Optimization — Reproducible Lab
 
-This project is a minimal, enterprise-style lab to:
-1) **Ingest** a dataset into Postgres,
-2) **Hammer** read/write endpoints,
-3) **Constrain** resources (memory/CPU) and observe p95 latency,
-4) **Optimize** with DB techniques (indexes/partitioning/replica),
-5) **Report** numbers (baseline vs constrained vs optimized).
+## 🎯 Objective
 
-## Folder layout
+This project demonstrates end-to-end database performance optimization using a **real dataset**, **load testing**, and **resource constraints**.  
+You will simulate a production-like workload (reads/writes), then progressively improve performance with database tuning techniques.
+
+---
+
+## 🧠 Steps Overview
+
+1. **Import Dataset into MongoDB**
+
+   - Use a CSV dataset (e.g., retailrocket events)
+   - Import 80% of data, hold 20% aside for continuous load simulation.
+
+2. **Simulate Heavy Load**
+
+   - Run `k6` with high concurrency (64 virtual users).
+   - Measure **latency (avg / p95)** and **throughput (req/s)**.
+
+3. **Constrain Resources**
+
+   - Limit MongoDB memory (`--wiredTigerCacheSizeGB` 2.0 → 1.6 GB).
+   - Observe latency spikes and reduced throughput.
+
+4. **Apply DB Optimizations**
+
+   - **Schema optimization**: ensure numeric and indexed fields.
+   - **Add Index**: `visitorid + timestamp` compound index.
+   - **Dual DB setup**: split reads/writes between two Mongo instances.
+
+5. **Compare Results**
+   - Analyze improvements across configurations using the provided `reports/`.
+
+---
+
+## 🧩 Architecture
+
 ```
-app/        # Fastify API (Node.js + pg)
-import/     # Importer (loads 80%, saves 20% to data/heldout.json)
-schema/     # SQL DDL (start here)
-data/       # dataset.csv (sample included)
-workload/   # k6 scripts
-ops/        # docker-compose.yml
-Makefile
+Docker Compose (ops/docker-compose.yml)
+ ├── MongoDB (primary, optional secondary)
+ ├── Fastify API (Node.js + TypeScript)
+ ├── Importer (data ingestion)
+ ├── k6 (load generator)
+ └── Grafana + Prometheus (optional monitoring)
 ```
 
-## Quick start
+---
+
+## 🧪 Load Testing Scenarios
+
+| Scenario        | Config         | Avg Latency (ms) | p95 (ms)  | Throughput (req/s) | Notes              |
+| --------------- | -------------- | ---------------- | --------- | ------------------ | ------------------ |
+| Baseline        | 2.5 GB         | 15.13            | 39.62     | 972.5              | Stable             |
+| Constrained     | 2.0 GB         | 15.65            | 39.75     | 964.9              | Slight degradation |
+| Indexed         | 2.0 GB + Index | 10.03            | 27.43     | 1055.0             | Major improvement  |
+| Dual DB         | 2 DBs          | 11.58            | 31.86     | 1028.0             | Slight improvement |
+| Dual DB + Index | 2 DBs + Index  | **10.42**        | **30.07** | **1048.3**         | Best overall       |
+
+---
+
+## 🚀 Quick Start
+
+### 1️⃣ Clone and setup
+
 ```bash
-# 0) Ensure Docker + Docker Compose are installed
-cd db-perf-lab
-
-# 1) Start stack
-make up
-
-# 2) Import baseline (80%) from data/dataset.csv
-make import
-
-# 3) Health check
-make health
-
-# 4) Run baseline workload (records p95)
-make baseline
+git clone https://github.com/yourname/db-optimizer-lab.git
+cd db-optimizer-lab
 ```
 
-The sample dataset (`data/dataset.csv`) has 20 rows to test the pipeline. Replace it with your real dataset (same columns).
+### 2️⃣ Run environment
 
-## Constrain resources
-Edit `ops/docker-compose.yml` and add limits to the `db` service, e.g.:
+```bash
+./dev.sh up
+```
+
+### 3️⃣ Import dataset
+
+```bash
+./dev.sh import
+```
+
+### 4️⃣ Run baseline benchmark
+
+```bash
+./dev.sh baseline
+```
+
+### 5️⃣ Apply index and rerun
+
+```bash
+./dev.sh index
+./dev.sh baseline
+```
+
+### 6️⃣ Enable second DB (read replica)
+
+```bash
+docker compose -f ops/docker-compose.yml up -d mongo2
+# Edit API to route GET /events → mongo2
+./dev.sh baseline
+```
+
+---
+
+## ⚙️ Configuration
+
+### `.env`
+
+```env
+MONGO_URL=mongodb://mongo:27017/testdb
+PORT=8080
+```
+
+### `docker-compose.yml`
+
 ```yaml
-  db:
-    image: postgres:16
-    deploy:
-      resources:
-        limits:
-          memory: 1.5g
-          cpus: "1.0"
-```
-Rebuild/restart then re-run `make baseline` to compare p95. Tighten until **p95 > 1s**.
-
-## Notes
-- The importer mounts `schema/` and `data/` into the container. It runs DDL then inserts 80% of the rows in batches, and writes the remaining 20% to `data/heldout.json` (which you can POST to `/ingest` during tests).
-- The API exposes:
-  - `GET /events?tenant_id=1&limit=100` (hot read path)
-  - `POST /ingest` (write path; accepts one event or an array)
-- The k6 workload defaults to **70% reads / 30% writes**, 32 virtual users, 2 minutes.
-
-## Next (Optimization Steps)
-- Add **composite/covering indexes** for your hot filters.
-- Consider **partitioning** `events` by time or tenant and verify partition pruning.
-- Introduce **PgBouncer** for pooling.
-- Try a **read replica** for GET endpoints.
-- Use `EXPLAIN (ANALYZE, BUFFERS)` to prove plan improvements.
+mongo:
+  image: mongo:7
+  container_name: mongo
+  command: ['--wiredTigerCacheSizeGB=2.0']
+  ports:
+    - '27017:27017'
+  volumes:
+    - mongo_data:/data/db
+api:
+  build: ./app
+  ports:
+    - '8080:8080'
+  environment:
+    - MONGO_URL=mongodb://mongo:27017/testdb
+k6:
+  image: grafana/k6
+  volumes:
+    - ./workload:/scripts
+  command: ['run', '/scripts/read_write.js']
+volumes:
+  mongo_data:
 ```
 
+---
 
+## 📊 Interpreting Results
 
-## Dev mode (hot reload inside Docker)
-Use the dev override to run the API with **ts-node-dev** and bind-mounted source:
+### Latency
 
-```bash
-# Start Postgres + API in dev (hot reload)
-make up-dev
+- **Avg latency**: average response time per request.
+- **p95 latency**: 95% of requests complete within this duration.
 
-# Tail backend logs
-make logs-dev
+### Throughput
 
-# Stop dev stack
-make down-dev
-```
+- **Requests per second** under 64 concurrent users.
 
-Notes:
-- Source code changes in `app/src` trigger automatic reloads.
-- Node inspector is exposed on `localhost:9229` if you want to attach a debugger.
-- We keep `node_modules` inside the container to avoid host/OS conflicts.
+| Metric   | Before Optimization | After Index | After Dual DB |
+| -------- | ------------------- | ----------- | ------------- |
+| Avg (ms) | 15.6                | **10.4**    | **10.4**      |
+| p95 (ms) | 39.7                | **27.4**    | **30.0**      |
+| Req/s    | 965                 | **1055**    | **1048**      |
+
+---
+
+## 💡 Key Insights
+
+- Index reduced query time by ~35%.
+- Two DBs reduced contention and kept latency low under load.
+- Schema optimization reduced unnecessary scanning.
+- Vertical scaling isn’t always best — horizontal DB duplication can help.
+
+---
+
+## 🧭 Future Improvements
+
+- Add **read replica** balancing.
+- Experiment with **Redis caching**.
+- Use **connection pooling** via `maxPoolSize`.
+- Predict future scale using Grafana dashboards.
+
+---
+
+## 🧾 References
+
+- [k6.io](https://k6.io)
+- [MongoDB Indexing Docs](https://www.mongodb.com/docs/manual/indexes/)
+- [Fastify Framework](https://www.fastify.io/)
+- [Docker Compose Reference](https://docs.docker.com/compose/)
