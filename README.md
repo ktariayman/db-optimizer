@@ -65,7 +65,7 @@ Docker Compose (ops/docker-compose.yml)
 ### 1️⃣ Clone and setup
 
 ```bash
-git clone [https://github.com/yourname/db-optimizer-lab.git](https://github.com/ktariayman/db-optimizer.git)
+git clone https://github.com/ktariayman/db-optimizer.git
 cd db-optimizer-lab
 ```
 
