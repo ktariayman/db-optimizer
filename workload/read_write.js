@@ -11,33 +11,30 @@ export const options = {
   },
 };
 
+const INGREDIENTS = ["chicken", "garlic", "onion", "beef", "pasta", "tomato", "cheese", "rice"];
+
 function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function randItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 export default function () {
-  if (Math.random() < 0.7) {
-    // READ: your API requires visitorid (+ optional from/to/limit)
-    const visitor = rand(1, 4);               // keep a small set we also write to
-    const now = Date.now();
-    const from = now - 24 * 60 * 60 * 1000;   // last 24h
-    const url = `${BASE_URL}/events?visitorid=${visitor}&from=${from}&to=${now}&limit=100`;
+  if (Math.random() < 0.8) { // 80% Reads
+    const ingredient = randItem(INGREDIENTS);
+    const url = `${BASE_URL}/recipes?search=${ingredient}&limit=20`;
 
-    const res = http.get(url, { tags: { endpoint: "GET /events" } });
-    check(res, { "GET /events -> 200": (r) => r.status === 200 });
-  } else {
-    // WRITE: match POST /ingest schema
+    const res = http.get(url, { tags: { endpoint: "GET /recipes" } });
+    check(res, { "GET /recipes -> 200": (r) => r.status === 200 });
+  } else { // 20% Writes
     const payload = JSON.stringify({
-      timestamp: Date.now(),               // ms epoch (number)
-      visitorid: String(rand(1, 4)),       // align with read set
-      event: "view",
-      itemid: String(rand(1, 1000)),
-      transactionid: null,
+      recipe_title: `New Recipe ${Date.now()}`,
+      ingredients: ["ingredient1", "ingredient2"],
+      directions: ["Step 1", "Step 2"]
     });
 
-    const res = http.post(`${BASE_URL}/ingest`, payload, {
+    const res = http.post(`${BASE_URL}/recipes`, payload, {
       headers: { "Content-Type": "application/json" },
-      tags: { endpoint: "POST /ingest" },
+      tags: { endpoint: "POST /recipes" },
     });
-    check(res, { "POST /ingest -> 201": (r) => r.status === 201 });
+    check(res, { "POST /recipes -> 201": (r) => r.status === 201 });
   }
 
   sleep(0.05);

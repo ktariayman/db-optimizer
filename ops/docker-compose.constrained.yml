@@ -1,0 +1,115 @@
+services:
+  mongo:
+    image: mongo:7
+    command: ['--wiredTigerCacheSizeGB=0.25']
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+      MONGO_INITDB_DATABASE: app
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          "mongosh --username root --password root --authenticationDatabase admin --eval 'db.adminCommand({ping:1})' || exit 1"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mongo-express:
+    image: mongo-express:1.0.2-20
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: root
+      ME_CONFIG_MONGODB_URL: mongodb://root:root@mongo:27017/?authSource=admin
+    ports:
+      - '8082:8081'
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  api:
+    build:
+      context: ../app
+      dockerfile: Dockerfile.dev
+    environment:
+      MONGO_URL: mongodb://root:root@mongo:27017/app?authSource=admin
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: 'true'
+      CHOKIDAR_INTERVAL: '300'
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - '8080:8080'
+    volumes:
+      - ../app/src:/app/src:rw,delegated
+      - ../app/package.json:/app/package.json:ro
+      - ../app/tsconfig.json:/app/tsconfig.json:ro
+      - /app/node_modules
+
+  importer:
+    build:
+      context: ../import
+    environment:
+      MONGO_URL: mongodb://root:root@mongo:27017/app?authSource=admin
+    depends_on:
+      mongo:
+        condition: service_healthy
+    volumes:
+      - ../data:/data
+
+  k6:
+    image: grafana/k6:0.49.0
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      BASE_URL: http://api:8080
+    volumes:
+      - ../workload:/workload
+    entrypoint: ['tail', '-f', '/dev/null']
+
+  mongo-exporter:
+    image: percona/mongodb_exporter:0.40.0
+    command: ['--mongodb.uri=mongodb://root:root@mongo:27017/admin?authSource=admin']
+    depends_on:
+      mongo:
+        condition: service_healthy
+    ports:
+      - '9217:9216'
+
+  prometheus:
+    image: prom/prometheus:v2.51.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - '9090:9090'
+    depends_on:
+      - mongo-exporter
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    ports:
+      - '3000:3000'
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  mongodata:
+  grafana-data:
+  prometheus-data:

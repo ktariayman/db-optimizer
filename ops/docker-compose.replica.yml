@@ -1,0 +1,144 @@
+services:
+  mongo1:
+    image: mongo:7
+    hostname: mongo1
+    command: ['mongod', '--replSet=rs0', '--bind_ip_all', '--wiredTigerCacheSizeGB=0.25']
+    volumes: [mongodata1:/data/db]
+    healthcheck:
+      test: ['CMD-SHELL', "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mongo2:
+    image: mongo:7
+    hostname: mongo2
+    command: ['mongod', '--replSet=rs0', '--bind_ip_all', '--wiredTigerCacheSizeGB=0.25']
+    volumes: [mongodata2:/data/db]
+    healthcheck:
+      test: ['CMD-SHELL', "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  arbiter:
+    image: mongo:7
+    hostname: arbiter
+    command: ['mongod', '--replSet=rs0', '--bind_ip_all']
+    volumes: [mongodata_arb:/data/db]
+    healthcheck:
+      test: ['CMD-SHELL', "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  # one-shot: initialize replica set
+  mongo-setup:
+    image: mongo:7
+    depends_on:
+      mongo1: { condition: service_healthy }
+      mongo2: { condition: service_healthy }
+      arbiter: { condition: service_healthy }
+    entrypoint: ['bash', '-lc']
+    command: >
+      '
+      echo "Initiating rs0...";
+      mongosh --host mongo1 --quiet --eval "
+        rs.initiate({
+          _id: \"rs0\",
+          members: [
+            { _id: 0, host: \"mongo1:27017\" },
+            { _id: 1, host: \"mongo2:27017\" },
+            { _id: 2, host: \"arbiter:27017\", arbiterOnly: true }
+          ]
+        });
+        while (!rs.isMaster().ismaster) { sleep(100); }
+        rs.status();
+      ";
+      echo "Replica set ready.";
+      '
+
+  api:
+    build:
+      context: ../app
+      dockerfile: Dockerfile.dev
+    environment:
+      # No auth for this demo replica set to keep it simple, or we'd need keyfiles
+      MONGO_URL: mongodb://mongo1:27017,mongo2:27017,arbiter:27017/app?replicaSet=rs0
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: 'true'
+      CHOKIDAR_INTERVAL: '300'
+    depends_on:
+      mongo-setup: { condition: service_completed_successfully }
+    ports:
+      - '8080:8080'
+    volumes:
+      - ../app/src:/app/src:rw,delegated
+      - ../app/package.json:/app/package.json:ro
+      - ../app/tsconfig.json:/app/tsconfig.json:ro
+      - /app/node_modules
+
+  importer:
+    build:
+      context: ../import
+    environment:
+      MONGO_URL: mongodb://mongo1:27017,mongo2:27017,arbiter:27017/app?replicaSet=rs0
+    depends_on:
+      mongo-setup: { condition: service_completed_successfully }
+    volumes:
+      - ../data:/data
+
+  k6:
+    image: grafana/k6:0.49.0
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      BASE_URL: http://api:8080
+    volumes:
+      - ../workload:/workload
+    entrypoint: ['tail', '-f', '/dev/null']
+
+  mongo-exporter:
+    image: percona/mongodb_exporter:0.40.0
+    # Monitor primary
+    command: ['--mongodb.uri=mongodb://mongo1:27017']
+    depends_on:
+      mongo1: { condition: service_healthy }
+    ports:
+      - '9217:9216'
+
+  prometheus:
+    image: prom/prometheus:v2.51.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - '9090:9090'
+    depends_on:
+      - mongo-exporter
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+    ports:
+      - '3000:3000'
+    volumes:
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  mongodata1:
+  mongodata2:
+  mongodata_arb:
+  grafana-data:
+  prometheus-data:

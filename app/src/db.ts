@@ -27,3 +27,13 @@ export async function eventsSecondaryPreferred(): Promise<Collection> {
  const d = await getDb();
  return d.collection("events_rr", { readPreference: ReadPreference.SECONDARY_PREFERRED });
 }
+
+export async function recipesPrimary(): Promise<Collection> {
+ const d = await getDb();
+ return d.collection("recipes");
+}
+
+export async function recipesSecondaryPreferred(): Promise<Collection> {
+ const d = await getDb();
+ return d.collection("recipes", { readPreference: ReadPreference.SECONDARY_PREFERRED });
+}

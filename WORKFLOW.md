@@ -1,20 +1,20 @@
-# Database Optimization Lab Guide
+# Database Optimization Lab Guide (Recipes Edition)
 
 This guide is designed to help you and your team understand the end-to-end workflow of optimizing a database under load. It simulates a real-world scenario where a system hits resource limits and requires architectural changes to recover performance.
 
 ## 🎯 Objective
-Take a system from **"Unbearable"** (slow, constrained) to **"Optimized"** (fast, scalable) using database tuning techniques.
+Take a system from **"Unbearable"** (slow, constrained) to **"Optimized"** (fast, scalable) using database tuning techniques, using a **Recipes Dataset** (360MB+).
+
+> **Note**: For setting up on a fresh Virtual Machine, see [VM_SETUP.md](./VM_SETUP.md).
 
 ---
 
-## 1. Environment Setup
-**Goal**: Get the lab running on your local machine.
+## 1. Environment Setup (Baseline)
+**Goal**: Get the lab running with ample resources (2GB RAM).
 
 ```bash
-./dev.sh up
+./dev.sh up baseline
 ```
-- **What it does**: Starts MongoDB, the API server, and monitoring tools using Docker Compose.
-- **Why**: We need a reproducible environment that mimics a production setup.
 
 ---
 
@@ -22,13 +22,12 @@ Take a system from **"Unbearable"** (slow, constrained) to **"Optimized"** (fast
 **Goal**: Load a realistic dataset to simulate a busy application.
 
 ```bash
-./dev.sh import
+./dev.sh import baseline
 ```
 - **What it does**:
-  - Reads `data/events.csv` (RetailRocket dataset).
-  - Inserts 80% of records into MongoDB (`events_rr` collection).
-  - Saves 20% to `heldout.json` for future use.
-- **Why**: Performance problems often only appear with sufficient data volume. We need enough data to exceed our memory constraints later.
+  - Reads `data/recipes_extended.json` (~360MB).
+  - Inserts ~62,000 recipes into MongoDB (`recipes` collection).
+  - Creates text indexes on `recipe_title` and `ingredients`.
 
 ---
 
@@ -36,32 +35,27 @@ Take a system from **"Unbearable"** (slow, constrained) to **"Optimized"** (fast
 **Goal**: Measure how the system performs *before* we break it.
 
 ```bash
-./dev.sh baseline
+./dev.sh baseline baseline
 ```
 - **What it does**: Runs a **k6** load test with 64 concurrent users for 30 seconds.
-- **Metrics to watch**:
-  - `http_req_duration` (p95): 95% of requests should be fast (e.g., < 50ms).
-  - `http_reqs` (Throughput): How many requests per second can we handle?
+- **Results**: Saved to `workload/reports/baseline.json`.
 
 ---
 
 ## 4. The "Chaos" Phase: Apply Constraints
-**Goal**: Simulate a production outage or resource exhaustion.
+**Goal**: Simulate a production outage or resource exhaustion (250MB RAM).
 
-1.  **Edit Configuration**: Open `ops/docker-compose.yml` and reduce memory.
-    ```yaml
-    # Find the mongo service
-    command: ['--wiredTigerCacheSizeGB=0.25'] # Reduce to 250MB
-    ```
-2.  **Apply Changes**:
+1.  **Switch to Constrained Mode**:
     ```bash
-    ./dev.sh down && ./dev.sh up
+    ./dev.sh down baseline
+    ./dev.sh up constrained
     ```
-3.  **Verify Degradation**:
+2.  **Verify Degradation**:
     ```bash
-    ./dev.sh baseline
+    ./dev.sh baseline constrained
     ```
-- **Why**: By forcing MongoDB to work with less RAM than the dataset size, we force it to read from disk (slow) instead of memory (fast). This causes latency to spike, simulating a "meltdown."
+- **Why**: By forcing MongoDB to work with less RAM than the dataset size (360MB > 250MB), we force it to read from disk (slow).
+- **Results**: Saved to `workload/reports/constrained.json`.
 
 ---
 
@@ -72,22 +66,25 @@ Now that the system is slow, we apply techniques to fix it.
 **Goal**: Speed up queries by avoiding full collection scans.
 
 ```bash
-./dev.sh index
+./dev.sh index constrained
 ```
-- **What it does**: Creates a compound index on `{ visitorid: 1, timestamp: -1 }`.
-- **Why**: Without an index, MongoDB must look at *every single document* to find a specific visitor. With an index, it jumps straight to the relevant records.
-- **Expected Result**: Massive drop in latency (e.g., 1000ms -> 10ms).
+- **What it does**: Creates indexes to support common queries.
+- **Expected Result**: Massive drop in latency.
 
 ### B. Read/Write Splitting (Scaling Out)
 **Goal**: Handle more traffic by adding more servers.
 
-1.  **Enable Second DB**: Uncomment `mongo2` in `ops/docker-compose.yml`.
-2.  **Update API**: Configure the API to send `GET` requests to `mongo2` and `POST` requests to `mongo`.
-3.  **Rerun Benchmark**:
+1.  **Switch to Replica Mode**:
     ```bash
-    ./dev.sh baseline
+    ./dev.sh down constrained
+    ./dev.sh up replica
     ```
-- **Why**: A single server has limits. By splitting the work (Writes -> Primary, Reads -> Secondary), we double our capacity for read-heavy workloads.
+2.  **Rerun Benchmark**:
+    ```bash
+    ./dev.sh baseline replica
+    ```
+- **Why**: A single server has limits. By splitting the work (Writes -> Primary, Reads -> Secondary), we double our capacity.
+- **Results**: Saved to `workload/reports/replica.json`.
 
 ---
 
@@ -95,10 +92,14 @@ Now that the system is slow, we apply techniques to fix it.
 **Goal**: Prove that your changes worked.
 
 Compare the reports in `workload/reports/`:
-1.  **Baseline**: Normal performance.
-2.  **Constrained**: "Unbearable" slowness.
-3.  **Indexed**: Recovered speed (Latency improvement).
-4.  **Dual DB**: Increased capacity (Throughput improvement).
+1.  **baseline.json**: Normal performance.
+2.  **constrained.json**: "Unbearable" slowness.
+3.  **replica.json**: Recovered speed and increased capacity.
+
+Run the comparison tool:
+```bash
+./dev.sh compare
+```
 
 ### Key Takeaways
 - **Indexes are critical**: They are the first line of defense against slow queries.
