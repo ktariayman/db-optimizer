@@ -99,6 +99,7 @@ services:
       - ../workload:/workload
     entrypoint: ['tail', '-f', '/dev/null']
 
+
   mongo-exporter:
     image: percona/mongodb_exporter:0.40.0
     # Monitor primary

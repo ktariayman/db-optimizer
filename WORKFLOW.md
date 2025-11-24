@@ -37,7 +37,10 @@ Take a system from **"Unbearable"** (slow, constrained) to **"Optimized"** (fast
 ```bash
 ./dev.sh baseline baseline
 ```
-- **What it does**: Runs a **k6** load test with 64 concurrent users for 30 seconds.
+- **What it does**: Runs a **k6** load test with **10 concurrent users** (low CPU usage) for 30 seconds.
+- **Metrics to watch**:
+  - `http_req_duration` (p95): 95% of requests should be fast (e.g., < 50ms).
+  - `http_reqs` (Throughput): How many requests per second can we handle?
 - **Results**: Saved to `workload/reports/baseline.json`.
 
 ---

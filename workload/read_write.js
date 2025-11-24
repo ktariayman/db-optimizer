@@ -4,7 +4,7 @@ import { check, sleep } from "k6";
 const BASE_URL = __ENV.BASE_URL || "http://api:8080";
 
 export const options = {
-  vus: 64,
+  vus: 10, // Reduced from 64 to 10 to save CPU
   duration: "30s",
   thresholds: {
     http_req_duration: ["p(95)<1000"],
@@ -37,5 +37,5 @@ export default function () {
     check(res, { "POST /recipes -> 201": (r) => r.status === 201 });
   }
 
-  sleep(0.05);
+  sleep(0.1); // Increased sleep slightly to be gentler
 }

@@ -72,6 +72,8 @@ services:
       - ../workload:/workload
     entrypoint: ['tail', '-f', '/dev/null']
 
+
+
   mongo-exporter:
     image: percona/mongodb_exporter:0.40.0
     command: ['--mongodb.uri=mongodb://root:root@mongo:27017/admin?authSource=admin']
