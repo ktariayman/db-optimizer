@@ -35,4 +35,6 @@ docker-compose.override.yml
 
 # Data
 data
-.agent\workflows
+
+# Agent
+.agent
