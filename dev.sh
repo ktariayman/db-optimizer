@@ -36,6 +36,16 @@ case "$1" in
     ;;
   health)    curl -s http://localhost:8080/health || true ;;
   compare)   node workload/compare.js ;;
+  reset)     $COMPOSE down -v && $COMPOSE up -d --build ;;
+  reset-db)
+    # Drops the 'app' database but keeps containers running
+    if [ "$MODE" == "replica" ]; then
+       $COMPOSE exec -T mongo1 mongosh --quiet --eval 'db.getSiblingDB("app").dropDatabase()'
+    else
+       $COMPOSE exec -T mongo mongosh "mongodb://root:root@mongo:27017/app?authSource=admin" --quiet --eval 'db.dropDatabase()'
+    fi
+    echo "Database 'app' dropped."
+    ;;
   *)
     echo "Usage: $0 {up|down|logs|import|baseline|index|health} [mode]"
     echo "Modes: baseline (default), constrained, replica"

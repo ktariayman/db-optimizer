@@ -137,19 +137,6 @@ k6:
   command: ['run', '/scripts/read_write.js']
 volumes:
   mongo_data:
-```
-
----
-
-## 📊 Interpreting Results
-
-### Latency
-
-- **Avg latency**: average response time per request.
-- **p95 latency**: 95% of requests complete within this duration.
-
-### Throughput
-
 - **Requests per second** under 64 concurrent users.
 
 | Metric   | Before Optimization | After Index | After Dual DB |
