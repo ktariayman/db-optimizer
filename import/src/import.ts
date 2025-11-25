@@ -42,17 +42,19 @@ async function main() {
   console.log("Deleting existing recipes...");
   await col.deleteMany({});
   console.log("Deleted.");
+  const limit = Math.floor(recipes.length * 0.8);
+  console.log(`Importing 80% of data (${limit} recipes), leaving 20% for simulation.`);
 
   // Batch insert
   const batchSize = 1000;
   let insertedCount = 0;
-  for (let i = 0; i < recipes.length; i += batchSize) {
-   const batch = recipes.slice(i, i + batchSize);
+  for (let i = 0; i < limit; i += batchSize) {
+   const batch = recipes.slice(i, Math.min(i + batchSize, limit));
    const ops = batch.map((doc) => ({ insertOne: { document: doc } }));
    await col.bulkWrite(ops, { ordered: false });
    insertedCount += batch.length;
    if (i % 10000 === 0) {
-    console.log(`Inserted ${insertedCount}/${recipes.length}`);
+    console.log(`Inserted ${insertedCount}/${limit}`);
    }
   }
 

@@ -8,6 +8,8 @@ if [ "$MODE" == "constrained" ]; then
   COMPOSE_FILE="ops/docker-compose.constrained.yml"
 elif [ "$MODE" == "replica" ]; then
   COMPOSE_FILE="ops/docker-compose.replica.yml"
+elif [ "$MODE" == "local" ]; then
+  COMPOSE_FILE="ops/docker-compose.local.yml"
 fi
 
 COMPOSE="docker compose -f $COMPOSE_FILE"
@@ -30,6 +32,19 @@ case "$1" in
     # Handle indexing for replica set vs standalone
     if [ "$MODE" == "replica" ]; then
        $COMPOSE exec -T mongo1 mongosh --quiet --eval 'db.getSiblingDB("app").recipes.createIndex({ recipe_title: "text", ingredients: "text" })'
+    elif [ "$MODE" == "local" ]; then
+       # For local, we can't exec into a container. We assume user has mongosh or we use the importer container to run a script?
+       # Actually, the import script now creates the index automatically! So we might not need this for local.
+       # But if we want to force it:
+       $COMPOSE run --rm importer node -e '
+         const { MongoClient } = require("mongodb");
+         const client = new MongoClient("mongodb://host.docker.internal:27017/app");
+         client.connect().then(async () => {
+           await client.db().collection("recipes").createIndex({ recipe_title: "text", ingredients: "text" });
+           console.log("Index created on local DB");
+           client.close();
+         });
+       '
     else
        $COMPOSE exec -T mongo mongosh "mongodb://root:root@mongo:27017/app?authSource=admin" --eval 'db.recipes.createIndex({ recipe_title: "text", ingredients: "text" })'
     fi

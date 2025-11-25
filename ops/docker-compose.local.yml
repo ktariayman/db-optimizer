@@ -1,0 +1,28 @@
+services:
+  api:
+    build: ../app
+    ports:
+      - '8080:8080'
+    environment:
+      - MONGO_URL=mongodb://host.docker.internal:27017/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  importer:
+    build: ../import
+    environment:
+      - MONGO_URL=mongodb://host.docker.internal:27017/app
+    volumes:
+      - ../data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  k6:
+    image: grafana/k6
+    volumes:
+      - ../workload:/scripts
+    command: ['run', '/scripts/read_write.js']
+    environment:
+      - BASE_URL=http://api:8080
+    depends_on:
+      - api
