@@ -74,7 +74,20 @@ Now that the system is slow, we apply techniques to fix it.
 - **What it does**: Creates indexes to support common queries.
 - **Expected Result**: Massive drop in latency.
 
-### B. Read/Write Splitting (Scaling Out)
+### B. Schema Optimization (Data Types)
+**Goal**: Reduce storage size and improve query speed by using correct data types (Int vs String).
+
+1.  **Apply Optimized Schema**:
+    ```bash
+    ./dev.sh optimize-schema constrained
+    ```
+2.  **Rerun Benchmark**:
+    ```bash
+    ./dev.sh baseline constrained
+    ```
+    *   *Note: You might want to rename the report file manually to `optimized.json` to compare it later.*
+
+### C. Read/Write Splitting (Scaling Out)
 **Goal**: Handle more traffic by adding more servers.
 
 1.  **Switch to Replica Mode**:

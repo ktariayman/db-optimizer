@@ -56,12 +56,12 @@ async function main() {
    }
   }
 
-  // console.log(`\nDone. Imported ${insertedCount} recipes.`);
+  console.log(`\nDone. Imported ${insertedCount} recipes.`);
 
   // Create text index immediately to ensure baseline works
-  // console.log("Creating indexes...");
-  // await col.createIndex({ recipe_title: "text", ingredients: "text" });
-  // console.log("Indexes created.");
+  console.log("Creating indexes...");
+  await col.createIndex({ recipe_title: "text", ingredients: "text" });
+  console.log("Indexes created.");
 
   await client.close();
  } catch (err) {
