@@ -18,8 +18,7 @@ function randItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
 export default function () {
   if (Math.random() < 0.8) { // 80% Reads
-    const ingredient = randItem(INGREDIENTS);
-    const url = `${BASE_URL}/recipes?search=${ingredient}&limit=20`;
+    const url = `${BASE_URL}/recipes`;
 
     const res = http.get(url, { tags: { endpoint: "GET /recipes" } });
     check(res, { "GET /recipes -> 200": (r) => r.status === 200 });
