@@ -15,11 +15,9 @@ app.get("/recipes", async (req, reply) => {
     filter.$text = { $search: search as string };
   }
 
-  const limit = Math.min(Number(q.limit || 10), 100);
 
   const col = await recipesSecondaryPreferred();
   const docs = await col
-    .limit(limit)
     .project({ _id: 0, recipe_title: 1, ingredients: 1, cook_speed: 1 }) // Project specific fields
     .toArray();
 
