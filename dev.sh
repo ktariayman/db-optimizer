@@ -18,7 +18,10 @@ case "$1" in
   up)        $COMPOSE up -d --build ;;
   down)      $COMPOSE down -v ;;
   logs)      $COMPOSE logs -f api ;;
-  import)    $COMPOSE run --rm importer npm run import:rr ;;
+  import)
+    SCHEMA_TYPE=${3:-default}
+    $COMPOSE run --rm -e SCHEMA_TYPE=$SCHEMA_TYPE importer npm run import:rr
+    ;;
   baseline)
     export MSYS_NO_PATHCONV=1
     $COMPOSE run --rm --entrypoint k6 \
@@ -45,6 +48,12 @@ case "$1" in
        $COMPOSE exec -T mongo mongosh "mongodb://root:root@mongo:27017/app?authSource=admin" --quiet --eval 'db.dropDatabase()'
     fi
     echo "Database 'app' dropped."
+    ;;
+  optimize-schema)
+    # Re-import with optimized schema
+    echo "Re-importing with Optimized Schema..."
+    $0 reset-db $MODE
+    $0 import $MODE optimized
     ;;
   *)
     echo "Usage: $0 {up|down|logs|import|baseline|index|health} [mode]"

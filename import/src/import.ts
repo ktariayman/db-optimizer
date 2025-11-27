@@ -48,7 +48,23 @@ async function main() {
   let insertedCount = 0;
   for (let i = 0; i < recipes.length; i += batchSize) {
    const batch = recipes.slice(i, i + batchSize);
-   const ops = batch.map((doc) => ({ insertOne: { document: doc } }));
+   const ops = batch.map((doc) => {
+    // Schema Optimization Logic
+    // If SCHEMA_TYPE is 'default' (naive), we convert numbers to strings.
+    // If SCHEMA_TYPE is 'optimized', we ensure they are numbers.
+    const schemaType = process.env.SCHEMA_TYPE || 'default';
+
+    if (schemaType === 'default') {
+     if (doc.cook_time) doc.cook_time = String(doc.cook_time);
+     if (doc.prep_time) doc.prep_time = String(doc.prep_time);
+     if (doc.calories) doc.calories = String(doc.calories);
+    } else {
+     if (doc.cook_time) doc.cook_time = Number(doc.cook_time);
+     if (doc.prep_time) doc.prep_time = Number(doc.prep_time);
+     if (doc.calories) doc.calories = Number(doc.calories);
+    }
+    return { insertOne: { document: doc } };
+   });
    await col.bulkWrite(ops, { ordered: false });
    insertedCount += batch.length;
    if (i % 10000 === 0) {
