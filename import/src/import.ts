@@ -58,10 +58,20 @@ async function main() {
      if (doc.cook_time) doc.cook_time = String(doc.cook_time);
      if (doc.prep_time) doc.prep_time = String(doc.prep_time);
      if (doc.calories) doc.calories = String(doc.calories);
+     if (doc.num_ingredients) doc.num_ingredients = String(doc.num_ingredients);
+     if (doc.num_steps) doc.num_steps = String(doc.num_steps);
+     if (doc.healthiness_score) doc.healthiness_score = String(doc.healthiness_score);
+     if (doc.est_prep_time_min) doc.est_prep_time_min = String(doc.est_prep_time_min);
+     if (doc.est_cook_time_min) doc.est_cook_time_min = String(doc.est_cook_time_min);
     } else {
      if (doc.cook_time) doc.cook_time = Number(doc.cook_time);
      if (doc.prep_time) doc.prep_time = Number(doc.prep_time);
      if (doc.calories) doc.calories = Number(doc.calories);
+     if (doc.num_ingredients) doc.num_ingredients = Number(doc.num_ingredients);
+     if (doc.num_steps) doc.num_steps = Number(doc.num_steps);
+     if (doc.healthiness_score) doc.healthiness_score = Number(doc.healthiness_score);
+     if (doc.est_prep_time_min) doc.est_prep_time_min = Number(doc.est_prep_time_min);
+     if (doc.est_cook_time_min) doc.est_cook_time_min = Number(doc.est_cook_time_min);
     }
     return { insertOne: { document: doc } };
    });
@@ -75,9 +85,9 @@ async function main() {
   console.log(`\nDone. Imported ${insertedCount} recipes.`);
 
   // Create text index immediately to ensure baseline works
-  // console.log("Creating indexes...");
-  // await col.createIndex({ recipe_title: "text", ingredients: "text" });
-  // console.log("Indexes created.");
+  console.log("Creating indexes...");
+  await col.createIndex({ recipe_title: "text", ingredients: "text" });
+  console.log("Indexes created.");
 
   await client.close();
  } catch (err) {
