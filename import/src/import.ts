@@ -46,7 +46,10 @@ async function main() {
   // Batch insert
   const batchSize = 1000;
   let insertedCount = 0;
-  for (let i = 0; i < recipes.length; i += batchSize) {
+  const limit = Math.floor(recipes.length * 0.8); // Import only 80% as per requirements
+  console.log(`Importing 80% of data (${limit} recipes)...`);
+
+  for (let i = 0; i < limit; i += batchSize) {
    const batch = recipes.slice(i, i + batchSize);
    const ops = batch.map((doc) => {
     // Schema Optimization Logic
