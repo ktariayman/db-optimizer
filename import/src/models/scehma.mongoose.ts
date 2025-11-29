@@ -69,9 +69,9 @@ const dietSchema = new Schema(
 
 const recipeSchema = new Schema(
  {
-  recipe_title: { type: String, required: true, index: true },
+  recipe_title: { type: String },
 
-  category: { type: String, index: true },
+  category: { type: String },
   subcategory: { type: String },
 
   main_ingredient: { type: String, default: "unknown" },
@@ -89,11 +89,6 @@ const recipeSchema = new Schema(
  }
 );
 
-recipeSchema.index({
- recipe_title: "text",
- "content.ingredients": "text",
- "content.description": "text",
-});
 
 export type Recipe = InferSchemaType<typeof recipeSchema>;
 export const RecipeModel = model<Recipe>("Recipe", recipeSchema);
