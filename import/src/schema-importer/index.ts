@@ -1,6 +1,6 @@
 // src/index.ts
 import mongoose from "mongoose";
-import { importRecipesFromFile } from "./services/recipeImport.service.js";
+import { importRecipesFromFile } from "./schema-importer/services/recipeImport.service.js";
 
 const url = process.env.MONGO_URL!;
 
@@ -12,7 +12,6 @@ async function main() {
   try {
     await importRecipesFromFile({
       filePath: "/data/recipes_extended.json",
-      schemaType: (process.env.SCHEMA_TYPE as any) || "optimized",
       fraction: 0.8,
       batchSize: 1000,
     });

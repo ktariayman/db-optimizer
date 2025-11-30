@@ -4,8 +4,9 @@
   "type": "module",
   "scripts": {
     "build": "tsc -p .",
-    "dev": "ts-node-dev --respawn src/import.ts",
-    "import:rr": "node dist/import.js"
+    "dev": "ts-node-dev --respawn src/import.withoutschema.ts",
+    "import:raw": "node dist/schema-raw/index.js",
+    "import:schema": "node dist/schema-importer/index.js"
   },
   "dependencies": {
     "csv-parse": "^5.5.6",

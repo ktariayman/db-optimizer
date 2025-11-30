@@ -12,4 +12,3 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN (npm ci --omit=dev || npm install --omit=dev --no-audit --no-fund)
 COPY --from=build /app/dist ./dist
-# no CMD here; dev.sh will run npm script explicitly

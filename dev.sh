@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 set -e
 
-MODE=${2:-baseline} # Default to baseline if not specified
+MODE=${2:-baseline} # baseline, constrained, or moderate
 COMPOSE_FILE="ops/docker-compose.baseline.yml"
 
 if [ "$MODE" == "constrained" ]; then
   COMPOSE_FILE="ops/docker-compose.constrained.yml"
+elif [ "$MODE" == "moderate" ]; then
+  COMPOSE_FILE="ops/docker-compose.moderate.yml"
 elif [ "$MODE" == "replica" ]; then
   COMPOSE_FILE="ops/docker-compose.replica.yml"
 fi
@@ -18,30 +20,40 @@ case "$1" in
   up)        $COMPOSE up -d --build ;;
   down)      $COMPOSE down -v ;;
   logs)      $COMPOSE logs -f api ;;
-  import)
-    SCHEMA_TYPE=${3:-default}
-    $COMPOSE run --rm -e SCHEMA_TYPE=$SCHEMA_TYPE importer npm run import:rr
+  
+  import-raw)
+    echo "Import: RAW (Bad Schema / Strings)"
+    $COMPOSE run --rm importer npm run import:raw
     ;;
-  baseline)
+  
+  import-schema)
+    # Schema-based import (Always uses OPTIMIZED schema / numbers)
+    # Usage: ./dev.sh import-schema <mode>
+    echo "Import: SCHEMA (Mongoose / Optimized Numbers)"
+    $COMPOSE run --rm importer npm run import:schema
+    ;;
+  
+  benchmark)
     export MSYS_NO_PATHCONV=1
     $COMPOSE run --rm --entrypoint k6 \
       -e K6_SUMMARY_EXPORT=/workload/reports/${MODE}.json \
       -v "$PWD/workload:/workload" \
       k6 run /workload/read_write.js
     ;;
+  
   index)
-    # Handle indexing for replica set vs standalone
     if [ "$MODE" == "replica" ]; then
        $COMPOSE exec -T mongo1 mongosh --quiet --eval 'db.getSiblingDB("app").recipes.createIndex({ recipe_title: "text", ingredients: "text" })'
     else
        $COMPOSE exec -T mongo mongosh "mongodb://root:root@mongo:27017/app?authSource=admin" --eval 'db.recipes.createIndex({ recipe_title: "text", ingredients: "text" })'
     fi
     ;;
+  
   health)    curl -s http://localhost:8080/health || true ;;
   compare)   node workload/compare.js ;;
   reset)     $COMPOSE down -v && $COMPOSE up -d --build ;;
+  
   reset-db)
-    # Drops the 'app' database but keeps containers running
     if [ "$MODE" == "replica" ]; then
        $COMPOSE exec -T mongo1 mongosh --quiet --eval 'db.getSiblingDB("app").dropDatabase()'
     else
@@ -49,15 +61,23 @@ case "$1" in
     fi
     echo "Database 'app' dropped."
     ;;
-  optimize-schema)
-    # Re-import with optimized schema
-    echo "Re-importing with Optimized Schema..."
-    $0 reset-db $MODE
-    $0 import $MODE optimized
-    ;;
+  
   *)
-    echo "Usage: $0 {up|down|logs|import|baseline|index|health} [mode]"
-    echo "Modes: baseline (default), constrained, replica"
-    echo "Example: ./dev.sh up constrained"
+    echo "Usage: $0 {command} [mode]"
+    echo ""
+    echo "Commands:"
+    echo "  up <mode>              - Start containers"
+    echo "  down <mode>            - Stop containers"
+    echo "  import-raw <mode>      - Raw import (Bad Schema / Strings)"
+    echo "  import-schema <mode>   - Schema import (Optimized / Numbers)"
+    echo "  benchmark <mode>       - Run k6 load test"
+    echo "  index <mode>           - Create indexes"
+    echo "  reset <mode>           - Full reset"
+    echo "  reset-db <mode>        - Drop database only"
+    echo ""
+    echo "Modes:"
+    echo "  baseline    - 8GB RAM"
+    echo "  moderate    - 6.4GB RAM"
+    echo "  constrained - 2GB RAM"
     exit 1;;
 esac
