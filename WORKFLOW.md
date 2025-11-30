@@ -1,123 +1,165 @@
-# Database Optimization Lab Guide (Recipes Edition)
+# Database Optimization Lab - Workflow
 
-This guide is designed to help you and your team understand the end-to-end workflow of optimizing a database under load. It simulates a real-world scenario where a system hits resource limits and requires architectural changes to recover performance.
+This lab demonstrates MongoDB performance optimization techniques across different resource constraints.
 
-## 🎯 Objective
-Take a system from **"Unbearable"** (slow, constrained) to **"Optimized"** (fast, scalable) using database tuning techniques, using a **Recipes Dataset** (360MB+).
+## 🎯 Overview
 
-> **Note**: For setting up on a fresh Virtual Machine, see [VM_SETUP.md](./VM_SETUP.md).
+**Deployment Modes:**
+- **Baseline** (8GB RAM) - High performance, no constraints
+- **Moderate** (6.4GB RAM) - Moderate resource constraints  
+- **Constrained** (2GB RAM) - Tight resource constraints
+
+**Import Strategies:**
+- **Raw Import** (`import-raw`) - Simulates legacy data (Strings)
+- **Schema Import** (`import-schema`) - Optimized data types (Numbers)
 
 ---
 
-## 1. Environment Setup (Baseline)
-**Goal**: Get the lab running with ample resources (2GB RAM).
+## 📋 Quick Start
+
+### 1. Start Environment
+```bash
+# Choose your mode: baseline | moderate | constrained
+sudo bash up baseline
+```
+
+### 2. Import Data
+```bash
+# 1. Import Legacy Data (Strings)
+sudo bash import-raw baseline
+
+# 2. Import Optimized Data (Numbers)
+sudo bash import-schema baseline
+```
+
+### 3. Run Benchmark
+```bash
+sudo bash benchmark baseline
+```
+
+### 4. View Results
+- **Mongo Express UI**: http://localhost:8082
+- **Grafana**: http://localhost:3000 (admin/admin)
+- **Prometheus**: http://localhost:9090
+
+---
+
+## 🔬 Optimization Experiments
+
+### Experiment 1: Schema Optimization Impact
+
+**Question**: Does using proper data types improve performance?
 
 ```bash
-./dev.sh up baseline
+# 1. Baseline with bad schema (strings)
+sudo bash reset
+sudo bash up constrained
+sudo bash import-raw constrained
+sudo bash benchmark constrained
+
+# 2. Apply schema optimization (numbers)
+sudo bash reset-db constrained
+sudo bash import-schema constrained
+sudo bash benchmark constrained
+
+# 3. Compare results
+sudo bash compare
+```
+
+**Expected Result**: Optimized schema should show:
+- Lower latency (faster queries)
+- Higher throughput (more requests/sec)
+- Less memory usage
+
+---
+
+### Experiment 2: Resource Constraints Impact
+
+**Question**: How do resource constraints affect performance?
+
+```bash
+# Test each mode with optimized schema
+for MODE in baseline moderate constrained; do
+  sudo bash reset
+  sudo bash up $MODE
+  sudo bash import-schema $MODE
+  sudo bash benchmark $MODE
+done
+
+sudo bash compare
+```
+
+**Expected Result**: Performance degrades as RAM decreases.
+
+---
+
+## 📊 Monitoring
+
+### Mongo Express (Database UI)
+- URL: http://localhost:8082
+- View collections, documents, indexes
+- Run queries manually
+
+### Grafana Dashboards
+- URL: http://localhost:3000
+- Username: `admin`
+- Password: `admin`
+- Pre-configured MongoDB metrics
+
+### Prometheus Metrics
+- URL: http://localhost:9090
+- Raw metrics from MongoDB exporter
+
+---
+
+## 🛠️ Commands Reference
+
+### Environment Management
+```bash
+sudo bash up <mode>           # Start containers
+sudo bash down <mode>         # Stop and remove containers
+sudo bash reset <mode>        # Full reset (down + up)
+sudo bash logs <mode>         # View API logs
+```
+
+### Data Operations
+```bash
+sudo bash import-raw <mode>     # Import legacy data (Strings)
+sudo bash import-schema <mode>  # Import optimized data (Numbers)
+sudo bash reset-db <mode>       # Drop database only
+sudo bash index <mode>          # Create text indexes
+```
+
+### Testing
+```bash
+sudo bash benchmark <mode>    # Run k6 load test
+sudo bash health <mode>       # Check API health
+sudo bash compare             # Compare benchmark results
 ```
 
 ---
 
-## 2. Data Import
-**Goal**: Load a realistic dataset to simulate a busy application.
+## 📁 File Structure
 
-```bash
-./dev.sh import baseline
 ```
-- **What it does**:
-  - Reads `data/recipes_extended.json` (~360MB).
-  - Inserts ~62,000 recipes into MongoDB (`recipes` collection).
-  - Creates text indexes on `recipe_title` and `ingredients`.
-
----
-
-## 3. Baseline Performance (The "Before" Picture)
-**Goal**: Measure how the system performs *before* we break it.
-
-```bash
-./dev.sh baseline baseline
+db-optimizer/
+├── ops/
+│   ├── docker-compose.baseline.yml    # 8GB RAM
+│   ├── docker-compose.moderate.yml    # 6.4GB RAM
+│   ├── docker-compose.constrained.yml # 2GB RAM
+│   └── docker-compose.replica.yml     # Replica set
+├── import/
+│   └── src/
+│       ├── import.withschema.ts       # Mongoose import (Optimized)
+│       ├── import.withoutschema.ts    # Raw MongoDB import (Legacy)
+│       ├── models/
+│       │   └── scehma.mongoose.ts     # Mongoose schema
+│       └── services/
+│           └── recipeImport.service.ts
+├── app/
+│   └── src/
+│       └── index.ts                   # Fastify API
+├── workload/
+│   └── read_write.js                  # k6 load test
+└── dev.sh                             # Main control script
 ```
-- **What it does**: Runs a **k6** load test with **10 concurrent users** (low CPU usage) for 30 seconds.
-- **Metrics to watch**:
-  - `http_req_duration` (p95): 95% of requests should be fast (e.g., < 50ms).
-  - `http_reqs` (Throughput): How many requests per second can we handle?
-- **Results**: Saved to `workload/reports/baseline.json`.
-
----
-
-## 4. The "Chaos" Phase: Apply Constraints
-**Goal**: Simulate a production outage or resource exhaustion (250MB RAM).
-
-1.  **Switch to Constrained Mode**:
-    ```bash
-    ./dev.sh down baseline
-    ./dev.sh up constrained
-    ```
-2.  **Verify Degradation**:
-    ```bash
-    ./dev.sh baseline constrained
-    ```
-- **Why**: By forcing MongoDB to work with less RAM than the dataset size (360MB > 250MB), we force it to read from disk (slow).
-- **Results**: Saved to `workload/reports/constrained.json`.
-
----
-
-## 5. Optimization Phase: Fixing the Problem
-Now that the system is slow, we apply techniques to fix it.
-
-### A. Indexing (The "Low Hanging Fruit")
-**Goal**: Speed up queries by avoiding full collection scans.
-
-```bash
-./dev.sh index constrained
-```
-- **What it does**: Creates indexes to support common queries.
-- **Expected Result**: Massive drop in latency.
-
-### B. Schema Optimization (Data Types)
-**Goal**: Reduce storage size and improve query speed by using correct data types (Int vs String).
-
-1.  **Apply Optimized Schema**:
-    ```bash
-    ./dev.sh optimize-schema constrained
-    ```
-2.  **Rerun Benchmark**:
-    ```bash
-    ./dev.sh baseline constrained
-    ```
-    *   *Note: You might want to rename the report file manually to `optimized.json` to compare it later.*
-
-### C. Read/Write Splitting (Scaling Out)
-**Goal**: Handle more traffic by adding more servers.
-
-1.  **Switch to Replica Mode**:
-    ```bash
-    ./dev.sh down constrained
-    ./dev.sh up replica
-    ```
-2.  **Rerun Benchmark**:
-    ```bash
-    ./dev.sh baseline replica
-    ```
-- **Why**: A single server has limits. By splitting the work (Writes -> Primary, Reads -> Secondary), we double our capacity.
-- **Results**: Saved to `workload/reports/replica.json`.
-
----
-
-## 6. Analysis & Reflection
-**Goal**: Prove that your changes worked.
-
-Compare the reports in `workload/reports/`:
-1.  **baseline.json**: Normal performance.
-2.  **constrained.json**: "Unbearable" slowness.
-3.  **replica.json**: Recovered speed and increased capacity.
-
-Run the comparison tool:
-```bash
-./dev.sh compare
-```
-
-### Key Takeaways
-- **Indexes are critical**: They are the first line of defense against slow queries.
-- **Resources matter**: Performance is relative to available RAM vs. Data Size.
-- **Architecture scales**: When vertical scaling (more RAM) isn't enough, horizontal scaling (more nodes) helps.
