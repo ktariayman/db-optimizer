@@ -1,6 +1,5 @@
-// src/index.ts
 import mongoose from "mongoose";
-import { importRecipesFromFile } from "./schema-importer/services/recipeImport.service.js";
+import { importRecipesFromFile } from "./services/recipeImport.service.js";
 
 const url = process.env.MONGO_URL!;
 
