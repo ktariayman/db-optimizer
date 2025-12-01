@@ -20,21 +20,21 @@ This lab demonstrates MongoDB performance optimization techniques across differe
 ### 1. Start Environment
 ```bash
 # Choose your mode: baseline | moderate | constrained
-sudo bash up baseline
+sudo bash ./dev.sh up baseline
 ```
 
 ### 2. Import Data
 ```bash
 # 1. Import Legacy Data (Strings)
-sudo bash import-raw baseline
+sudo bash ./dev.sh import-raw baseline
 
 # 2. Import Optimized Data (Numbers)
-sudo bash import-schema baseline
+sudo bash ./dev.sh import-schema baseline
 ```
 
 ### 3. Run Benchmark
 ```bash
-sudo bash benchmark baseline
+sudo bash ./dev.sh benchmark baseline
 ```
 
 ### 4. View Results
@@ -52,18 +52,18 @@ sudo bash benchmark baseline
 
 ```bash
 # 1. Baseline with bad schema (strings)
-sudo bash reset
-sudo bash up constrained
-sudo bash import-raw constrained
-sudo bash benchmark constrained
+sudo bash ./dev.sh reset
+sudo bash ./dev.sh up constrained
+sudo bash ./dev.sh import-raw constrained
+sudo bash ./dev.sh benchmark constrained
 
-# 2. Apply schema optimization (numbers)
-sudo bash reset-db constrained
-sudo bash import-schema constrained
-sudo bash benchmark constrained
+# 2. Apply schema optimization 
+sudo bash ./dev.sh reset-db constrained
+sudo bash ./dev.sh import-schema constrained
+sudo bash ./dev.sh benchmark constrained
 
 # 3. Compare results
-sudo bash compare
+sudo bash ./dev.sh compare
 ```
 
 **Expected Result**: Optimized schema should show:
@@ -80,13 +80,13 @@ sudo bash compare
 ```bash
 # Test each mode with optimized schema
 for MODE in baseline moderate constrained; do
-  sudo bash reset
-  sudo bash up $MODE
-  sudo bash import-schema $MODE
-  sudo bash benchmark $MODE
+  sudo bash ./dev.sh reset
+  sudo bash ./dev.sh up $MODE
+  sudo bash ./dev.sh import-schema $MODE
+  sudo bash ./dev.sh benchmark $MODE
 done
 
-sudo bash compare
+sudo bash ./dev.sh compare
 ```
 
 **Expected Result**: Performance degrades as RAM decreases.
@@ -116,25 +116,25 @@ sudo bash compare
 
 ### Environment Management
 ```bash
-sudo bash up <mode>           # Start containers
-sudo bash down <mode>         # Stop and remove containers
-sudo bash reset <mode>        # Full reset (down + up)
-sudo bash logs <mode>         # View API logs
+sudo bash ./dev.sh up <mode>           # Start containers
+sudo bash ./dev.sh down <mode>         # Stop and remove containers
+sudo bash ./dev.sh reset <mode>        # Full reset (down + up)
+sudo bash ./dev.sh logs <mode>         # View API logs
 ```
 
 ### Data Operations
 ```bash
-sudo bash import-raw <mode>     # Import legacy data (Strings)
-sudo bash import-schema <mode>  # Import optimized data (Numbers)
-sudo bash reset-db <mode>       # Drop database only
-sudo bash index <mode>          # Create text indexes
+sudo bash ./dev.sh import-raw <mode>     # Import legacy data (Strings)
+sudo bash ./dev.sh import-schema <mode>  # Import optimized data (Numbers)
+sudo bash ./dev.sh reset-db <mode>       # Drop database only
+sudo bash ./dev.sh index <mode>          # Create text indexes
 ```
 
 ### Testing
 ```bash
-sudo bash benchmark <mode>    # Run k6 load test
-sudo bash health <mode>       # Check API health
-sudo bash compare             # Compare benchmark results
+sudo bash ./dev.sh benchmark <mode>    # Run k6 load test
+sudo bash ./dev.sh health <mode>       # Check API health
+sudo bash ./dev.sh compare             # Compare benchmark results
 ```
 
 ---
