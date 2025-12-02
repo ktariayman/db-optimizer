@@ -125,16 +125,23 @@ export async function importRecipesFromFile(
  const limit = Math.floor(raw.length * fraction);
  console.log(`Importing ${limit} recipes (${fraction * 100}% of dataset)...`);
 
- console.log("Synchronizing indexes...");
- await RecipeModel.syncIndexes();
- console.log("Indexes synchronized successfully.");
+ const shouldCreateIndex = process.env.IMPORT_CREATE_INDEX === "true";
 
- // Log existing indexes
- const indexes = await RecipeModel.collection.listIndexes().toArray();
- console.log(`Total indexes created: ${indexes.length}`);
- indexes.forEach((idx, i) => {
-  console.log(`  [${i + 1}] ${idx.name}: ${JSON.stringify(idx.key)}`);
- });
+ if (shouldCreateIndex) {
+  console.log("Index creation ENABLED → synchronizing indexes...");
+  await RecipeModel.syncIndexes();
+
+  const indexes = await RecipeModel.collection.listIndexes().toArray();
+  console.log(`Indexes created: ${indexes.length}`);
+  indexes.forEach((idx, i) => {
+   console.log(`  [${i + 1}] ${idx.name}: ${JSON.stringify(idx.key)}`);
+  });
+
+ } else {
+  console.log("Index creation DISABLED → skipping syncIndexes().");
+ }
+
+
 
  const collection = RecipeModel.collection;
 

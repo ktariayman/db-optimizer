@@ -70,12 +70,17 @@ async function main() {
    }
   }
 
-  console.log(`\nImport complete. Inserted ${insertedCount} recipes.`);
 
-  // Create text index
-  // console.log("Creating text index...");
-  // await collection.createIndex({ recipe_title: "text", ingredients: "text" });
-  // console.log("Index created.");
+  // Conditional index creation
+  const shouldCreateIndex = process.env.IMPORT_CREATE_INDEX === "true";
+
+  if (shouldCreateIndex) {
+   console.log("Index creation enabled. Creating index...");
+   await collection.createIndex({ recipe_title: "text", ingredients: "text" });
+   console.log("Index created.");
+  } else {
+   console.log("Skipping index creation (IMPORT_CREATE_INDEX=false).");
+  }
 
  } finally {
   await client.close();

@@ -22,16 +22,31 @@ case "$1" in
   logs)      $COMPOSE logs -f api ;;
   
   import-raw)
-    echo "Import: RAW (Bad Schema / Strings)"
-    $COMPOSE run --rm importer npm run import:raw
-    ;;
+  echo "Import: RAW"
+
+  if [[ "$3" == "--with-index" ]]; then
+      export IMPORT_CREATE_INDEX=true
+  else
+      export IMPORT_CREATE_INDEX=false
+  fi
+
+  $COMPOSE run --rm importer npm run import:raw
+  ;;
   
   import-schema)
-    # Schema-based import (Always uses OPTIMIZED schema / numbers)
-    # Usage: ./dev.sh import-schema <mode>
-    echo "Import: SCHEMA (Mongoose / Optimized Numbers)"
-    $COMPOSE run --rm importer npm run import:schema
-    ;;
+  echo "Import: SCHEMA"
+
+  if [[ "$3" == "--with-index" ]]; then
+    export IMPORT_CREATE_INDEX=true
+    echo "Indexing ENABLED"
+  else
+    export IMPORT_CREATE_INDEX=false
+    echo "Indexing DISABLED"
+  fi
+
+  $COMPOSE run --rm importer npm run import:schema
+  ;;
+
   
   benchmark)
     export MSYS_NO_PATHCONV=1

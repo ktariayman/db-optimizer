@@ -86,16 +86,24 @@ const recipeSchema = new Schema(
   collection: "recipes",
   strict: false,
   timestamps: false,
+  autoIndex: false, // <--- IMPORTANT
  }
+
 );
 
 // ============================================================================
 // INDEXES
 // ============================================================================
 
-// Text search on recipe title
-recipeSchema.index({ recipe_title: "text" });
-recipeSchema.index({ "content.ingredients": 1 });
+
+
+if (process.env.IMPORT_CREATE_INDEX === "true") {
+ console.log("Indexing enabled for Recipe model.");
+ recipeSchema.index({ recipe_title: "text" });
+ recipeSchema.index({ "content.ingredients": 1 });
+} else {
+ console.log("Indexing disabled for Recipe model.");
+}
 
 
 export type Recipe = InferSchemaType<typeof recipeSchema>;
