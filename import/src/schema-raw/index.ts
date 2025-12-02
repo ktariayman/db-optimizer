@@ -73,9 +73,9 @@ async function main() {
   console.log(`\nImport complete. Inserted ${insertedCount} recipes.`);
 
   // Create text index
-  console.log("Creating text index...");
-  await collection.createIndex({ recipe_title: "text", ingredients: "text" });
-  console.log("Index created.");
+  // console.log("Creating text index...");
+  // await collection.createIndex({ recipe_title: "text", ingredients: "text" });
+  // console.log("Index created.");
 
  } finally {
   await client.close();

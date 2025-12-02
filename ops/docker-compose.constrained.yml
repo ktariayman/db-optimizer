@@ -1,7 +1,7 @@
 services:
   mongo:
     image: mongo:7
-    command: ['--wiredTigerCacheSizeGB=6.4']
+    command: ['--wiredTigerCacheSizeGB=2']
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
@@ -72,8 +72,6 @@ services:
     volumes:
       - ../workload:/workload
     entrypoint: ['tail', '-f', '/dev/null']
-
-
 
   mongo-exporter:
     image: percona/mongodb_exporter:0.40.0
