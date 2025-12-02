@@ -1,7 +1,8 @@
 services:
   mongo:
     image: mongo:7
-    command: ['--wiredTigerCacheSizeGB=6.4']
+    mem_limit: 6.4g
+    # command: ['--wiredTigerCacheSizeGB=6.4']
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root

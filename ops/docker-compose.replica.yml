@@ -2,7 +2,7 @@ services:
   mongo1:
     image: mongo:7
     hostname: mongo1
-    command: ['mongod', '--replSet=rs0', '--bind_ip_all', '--wiredTigerCacheSizeGB=0.25']
+    command: ['mongod', '--replSet=rs0', '--bind_ip_all']
     volumes: [mongodata1:/data/db]
     healthcheck:
       test: ['CMD-SHELL', "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })' || exit 1"]
@@ -13,7 +13,7 @@ services:
   mongo2:
     image: mongo:7
     hostname: mongo2
-    command: ['mongod', '--replSet=rs0', '--bind_ip_all', '--wiredTigerCacheSizeGB=0.25']
+    command: ['mongod', '--replSet=rs0', '--bind_ip_all']
     volumes: [mongodata2:/data/db]
     healthcheck:
       test: ['CMD-SHELL', "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })' || exit 1"]
