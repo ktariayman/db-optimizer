@@ -95,32 +95,7 @@ const recipeSchema = new Schema(
 
 // Text search on recipe title
 recipeSchema.index({ recipe_title: "text" });
-
-// Single field indexes for filtering
-recipeSchema.index({ category: 1 });
-recipeSchema.index({ subcategory: 1 });
-recipeSchema.index({ main_ingredient: 1 });
-
-// Classification indexes
-recipeSchema.index({ "classification.cuisine_list": 1 });
-recipeSchema.index({ "classification.course_list": 1 });
-recipeSchema.index({ "classification.primary_taste": 1 });
-
-// Dietary filter indexes
-recipeSchema.index({ "diet.is_vegan": 1 });
-recipeSchema.index({ "diet.is_vegetarian": 1 });
-recipeSchema.index({ "diet.is_gluten_free": 1 });
-recipeSchema.index({ "diet.is_dairy_free": 1 });
-recipeSchema.index({ "diet.health_level": 1 });
-
-// Timing indexes for range queries
-recipeSchema.index({ "timing.cook_time": 1 });
-recipeSchema.index({ "timing.prep_time": 1 });
-recipeSchema.index({ "timing.num_ingredients": 1 });
-
-// Compound indexes for common query combinations
-recipeSchema.index({ category: 1, subcategory: 1 });
-recipeSchema.index({ category: 1, "diet.is_vegetarian": 1 });
+recipeSchema.index({ "content.ingredients": 1 });
 
 
 export type Recipe = InferSchemaType<typeof recipeSchema>;
