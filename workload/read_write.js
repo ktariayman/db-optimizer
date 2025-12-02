@@ -4,7 +4,7 @@ import { check, sleep } from "k6";
 const BASE_URL = __ENV.BASE_URL || "http://api:8080";
 
 export const options = {
-  vus: 10, // Reduced from 64 to 10 to save CPU
+  vus: 30,
   duration: "30s",
   thresholds: {
     http_req_duration: ["p(95)<1000"],
