@@ -1,7 +1,10 @@
+x-service-defaults: &defaults
+  mem_limit: 6.4g
+
 services:
   mongo:
+    <<: *defaults
     image: mongo:7
-    mem_limit: 6.4g
     # command: ['--wiredTigerCacheSizeGB=6.4']
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
@@ -20,6 +23,7 @@ services:
       retries: 30
 
   mongo-express:
+    <<: *defaults
     image: mongo-express:1.0.2-20
     environment:
       ME_CONFIG_MONGODB_ADMINUSERNAME: root
@@ -33,6 +37,7 @@ services:
         condition: service_healthy
 
   api:
+    <<: *defaults
     build:
       context: ../app
       dockerfile: Dockerfile.dev
@@ -53,10 +58,12 @@ services:
       - /app/node_modules
 
   importer:
+    <<: *defaults
     build:
       context: ../import
     environment:
       MONGO_URL: mongodb://root:root@mongo:27017/app?authSource=admin
+      IMPORT_CREATE_INDEX: ${IMPORT_CREATE_INDEX}
     depends_on:
       mongo:
         condition: service_healthy
@@ -64,6 +71,7 @@ services:
       - ../data:/data
 
   k6:
+    <<: *defaults
     image: grafana/k6:0.49.0
     depends_on:
       api:
@@ -75,6 +83,7 @@ services:
     entrypoint: ['tail', '-f', '/dev/null']
 
   mongo-exporter:
+    <<: *defaults
     image: percona/mongodb_exporter:0.40.0
     command: ['--mongodb.uri=mongodb://root:root@mongo:27017/admin?authSource=admin']
     depends_on:
@@ -84,6 +93,7 @@ services:
       - '9217:9216'
 
   prometheus:
+    <<: *defaults
     image: prom/prometheus:v2.51.1
     command:
       - --config.file=/etc/prometheus/prometheus.yml
@@ -99,6 +109,7 @@ services:
       - mongo-exporter
 
   grafana:
+    <<: *defaults
     image: grafana/grafana:10.4.2
     environment:
       GF_SECURITY_ADMIN_USER: admin

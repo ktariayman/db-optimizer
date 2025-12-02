@@ -83,6 +83,7 @@ services:
       context: ../import
     environment:
       MONGO_URL: mongodb://mongo1:27017,mongo2:27017,arbiter:27017/app?replicaSet=rs0
+      IMPORT_CREATE_INDEX: ${IMPORT_CREATE_INDEX}
     depends_on:
       mongo-setup: { condition: service_completed_successfully }
     volumes:
@@ -98,7 +99,6 @@ services:
     volumes:
       - ../workload:/workload
     entrypoint: ['tail', '-f', '/dev/null']
-
 
   mongo-exporter:
     image: percona/mongodb_exporter:0.40.0
