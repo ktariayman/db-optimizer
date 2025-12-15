@@ -1,11 +1,11 @@
 x-service-defaults: &defaults
-  mem_limit: 6g
+  mem_limit: 2g
 
 services:
   mongo:
     <<: *defaults
     image: mongo:7
-    command: ['--wiredTigerCacheSizeGB=2.4']
+    command: ['--wiredTigerCacheSizeGB=0.8']
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root

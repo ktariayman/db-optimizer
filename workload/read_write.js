@@ -22,6 +22,8 @@ export default function () {
 
     const res = http.get(url, { tags: { endpoint: "GET /recipes" } });
     check(res, { "GET /recipes -> 200": (r) => r.status === 200 });
+
+
   } else { // 20% Writes
     const payload = JSON.stringify({
       recipe_title: `New Recipe ${Date.now()}`,
@@ -36,5 +38,5 @@ export default function () {
     check(res, { "POST /recipes -> 201": (r) => r.status === 201 });
   }
 
-  sleep(0.1); // Increased sleep slightly to be gentler
+  // sleep(0.1); // Increased sleep slightly to be gentler
 }
