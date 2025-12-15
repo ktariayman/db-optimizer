@@ -18,7 +18,7 @@ run_step() {
 }
 
 echo "🚀 STAY CALM! Running all benchmarks sequentially..."
-echo "This may take a few minutes."
+echo "This may take a SIGNIFICANT amount of time (32 runs)."
 echo "================================================================="
 
 # -----------------------------
@@ -28,6 +28,9 @@ run_step baseline
 run_step baseline --index
 run_step baseline --schema
 run_step baseline --replica
+run_step baseline --schema --index
+run_step baseline --index --replica
+run_step baseline --schema --replica
 run_step baseline --index --schema --replica
 
 # -----------------------------
@@ -37,6 +40,9 @@ run_step moderate
 run_step moderate --index
 run_step moderate --schema
 run_step moderate --replica
+run_step moderate --schema --index
+run_step moderate --index --replica
+run_step moderate --schema --replica
 run_step moderate --index --schema --replica
 
 # -----------------------------
@@ -46,6 +52,9 @@ run_step constrained
 run_step constrained --index
 run_step constrained --schema
 run_step constrained --replica
+run_step constrained --schema --index
+run_step constrained --index --replica
+run_step constrained --schema --replica
 run_step constrained --index --schema --replica
 
 # -----------------------------
@@ -55,6 +64,9 @@ run_step unbearable
 run_step unbearable --index
 run_step unbearable --schema
 run_step unbearable --replica
+run_step unbearable --schema --index
+run_step unbearable --index --replica
+run_step unbearable --schema --replica
 run_step unbearable --index --schema --replica
 
 echo ""
