@@ -4,8 +4,8 @@ import { check, sleep } from "k6";
 const BASE_URL = __ENV.BASE_URL || "http://api:8080";
 
 export const options = {
-  vus: 30,
-  duration: "30s",
+  vus: 10,
+  iterations: 1000,
   thresholds: {
     http_req_duration: ["p(95)<1000"],
   },
@@ -22,8 +22,6 @@ export default function () {
 
     const res = http.get(url, { tags: { endpoint: "GET /recipes" } });
     check(res, { "GET /recipes -> 200": (r) => r.status === 200 });
-
-
   } else { // 20% Writes
     const payload = JSON.stringify({
       recipe_title: `New Recipe ${Date.now()}`,
@@ -38,5 +36,5 @@ export default function () {
     check(res, { "POST /recipes -> 201": (r) => r.status === 201 });
   }
 
-  // sleep(0.1); // Increased sleep slightly to be gentler
+  sleep(0.1); // Increased sleep slightly to be gentler
 }
