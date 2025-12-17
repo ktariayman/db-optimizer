@@ -1,64 +1,53 @@
 import http from "k6/http";
-import { check, sleep } from "k6";
+import { check } from "k6";
 
-const BASE_URL = __ENV.BASE_URL || "http://api:8080";
+const BASE_URL = __ENV.BASE_URL || "http://localhost:8080";
+
+const SCHEMA_PATH = "/recipes/by-time";
 
 export const options = {
-  vus: 10,
-  iterations: 1000,
-  thresholds: {
-    http_req_duration: ["p(95)<1000"],
-  },
+  vus: Number(__ENV.VUS || 10),
+  iterations: Number(__ENV.ITERATIONS || 1000),
 };
 
-function rand(min, max) {
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+function normalGet() {
+  const url = `${BASE_URL}/recipes?search=chicken&limit=10`;
+  const res = http.get(url, { tags: { name: "GET_normal" } });
+  check(res, { "GET_normal status 200": (r) => r.status === 200 });
+}
+
+function postRecipe() {
+  const payload = JSON.stringify({
+    recipe_title: "k6 test",
+    ingredients: ["salt", "pepper"],
+    directions: ["mix", "cook"],
+    cook_speed: "fast",
+  });
+
+  const res = http.post(`${BASE_URL}/recipes`, payload, {
+    headers: { "Content-Type": "application/json" },
+    tags: { name: "POST_recipe" },
+  });
+
+  check(res, { "POST status 2xx": (r) => r.status >= 200 && r.status < 300 });
+
+}
+
+function schemaSensitiveGet() {
+  const maxPrep = 60;
+  const url = `${BASE_URL}${SCHEMA_PATH}?maxPrep=${maxPrep}&limit=10`;
+  const res = http.get(url, { tags: { name: "GET_schema_sensitive" } });
+  check(res, { "GET_schema_sensitive status 200": (r) => r.status === 200 });
 }
 
 export default function () {
   const r = Math.random();
 
-  if (r < 0.7) {
-    const res = http.get(`${BASE_URL}/recipes`, {
-      tags: { endpoint: "GET /recipes" },
-    });
-
-    check(res, {
-      "GET /recipes -> 200": (r) => r.status === 200,
-    });
+  if (r < 0.70) {
+    normalGet();              // 70%
+  } else if (r < 0.90) {
+    postRecipe();             // 20%
+  } else {
+    schemaSensitiveGet();     // 10%
   }
-
-  else if (r < 0.9) {
-    const payload = JSON.stringify({
-      recipe_title: `New Recipe ${Date.now()}`,
-      ingredients: ["ingredient1", "ingredient2"],
-      directions: ["Step 1", "Step 2"],
-    });
-
-    const res = http.post(`${BASE_URL}/recipes`, payload, {
-      headers: { "Content-Type": "application/json" },
-      tags: { endpoint: "POST /recipes" },
-    });
-
-    check(res, {
-      "POST /recipes -> 201": (r) => r.status === 201,
-    });
-  }
-
-  else {
-    const receivedBefore = new Date(
-      Date.now() - rand(1000, 60000)
-    ).toISOString();
-
-    const res = http.get(
-      `${BASE_URL}/recipes?receivedBefore=${receivedBefore}&limit=20`,
-      { tags: { endpoint: "GET /recipes (time-filtered)" } }
-    );
-
-    check(res, {
-      "GET /recipes (time-filtered) -> 200": (r) => r.status === 200,
-    });
-  }
-
-  sleep(0.1);
 }

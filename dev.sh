@@ -69,6 +69,8 @@ echo "➡ [1/3] Resetting environment..."
 $COMPOSE down -v
 # Build and start containers in detached mode
 $COMPOSE up -d --build
+export IMPORT_TYPE
+echo "IMPORT_TYPE: $IMPORT_TYPE"
 
 echo "⏳ Waiting for services to initialize..."
 sleep 5
