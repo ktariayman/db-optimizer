@@ -1,5 +1,5 @@
 x-service-defaults: &defaults
-  mem_limit: 8g
+  mem_limit: 12g
 
 services:
   mongo:

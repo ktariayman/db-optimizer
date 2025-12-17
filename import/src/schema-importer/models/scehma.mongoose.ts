@@ -35,7 +35,7 @@ const classificationSchema = new Schema(
 
 const timingSchema = new Schema(
  {
-  num_ingredients: Schema.Types.Mixed, // string | number (for SCHEMA_TYPE modes)
+  num_ingredients: Schema.Types.String,
   num_steps: Schema.Types.Mixed,
   fast_hits: Schema.Types.Mixed,
   slow_hits: Schema.Types.Mixed,
