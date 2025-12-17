@@ -11,7 +11,7 @@ export const options = {
 };
 
 function normalGet() {
-  const url = `${BASE_URL}/recipes?search=chicken&limit=10`;
+  const url = `${BASE_URL}/recipes`;
   const res = http.get(url, { tags: { name: "GET_normal" } });
   check(res, { "GET_normal status 200": (r) => r.status === 200 });
 }
