@@ -50,4 +50,5 @@ export default function () {
   } else {
     schemaSensitiveGet();     // 10%
   }
+  sleep(1);
 }
