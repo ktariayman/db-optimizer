@@ -11,30 +11,54 @@ export const options = {
   },
 };
 
-const INGREDIENTS = ["chicken", "garlic", "onion", "beef", "pasta", "tomato", "cheese", "rice"];
-
-function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
-function randItem(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function rand(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 export default function () {
-  if (Math.random() < 0.8) { // 80% Reads
-    const url = `${BASE_URL}/recipes`;
+  const r = Math.random();
 
-    const res = http.get(url, { tags: { endpoint: "GET /recipes" } });
-    check(res, { "GET /recipes -> 200": (r) => r.status === 200 });
-  } else { // 20% Writes
+  if (r < 0.7) {
+    const res = http.get(`${BASE_URL}/recipes`, {
+      tags: { endpoint: "GET /recipes" },
+    });
+
+    check(res, {
+      "GET /recipes -> 200": (r) => r.status === 200,
+    });
+  }
+
+  else if (r < 0.9) {
     const payload = JSON.stringify({
       recipe_title: `New Recipe ${Date.now()}`,
       ingredients: ["ingredient1", "ingredient2"],
-      directions: ["Step 1", "Step 2"]
+      directions: ["Step 1", "Step 2"],
     });
 
     const res = http.post(`${BASE_URL}/recipes`, payload, {
       headers: { "Content-Type": "application/json" },
       tags: { endpoint: "POST /recipes" },
     });
-    check(res, { "POST /recipes -> 201": (r) => r.status === 201 });
+
+    check(res, {
+      "POST /recipes -> 201": (r) => r.status === 201,
+    });
   }
 
-  sleep(0.1); // Increased sleep slightly to be gentler
+  else {
+    const receivedBefore = new Date(
+      Date.now() - rand(1000, 60000)
+    ).toISOString();
+
+    const res = http.get(
+      `${BASE_URL}/recipes?receivedBefore=${receivedBefore}&limit=20`,
+      { tags: { endpoint: "GET /recipes (time-filtered)" } }
+    );
+
+    check(res, {
+      "GET /recipes (time-filtered) -> 200": (r) => r.status === 200,
+    });
+  }
+
+  sleep(0.1);
 }
