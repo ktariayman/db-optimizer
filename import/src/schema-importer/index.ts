@@ -4,10 +4,7 @@ import { importRecipesFromFile } from "./services/recipeImport.service.js";
 const url = process.env.MONGO_URL!;
 
 async function main() {
-  console.log("Connecting to MongoDB:", url);
   await mongoose.connect(url);
-  console.log("Connected.");
-
   try {
     await importRecipesFromFile({
       filePath: "/data/recipes_extended.json",

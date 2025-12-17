@@ -103,9 +103,6 @@ export async function importRecipesFromFile(
  } = options;
 
  const resolvedPath = path.resolve(filePath);
- console.log(`Reading recipes from: ${resolvedPath}`);
- console.log(`SCHEMA_TYPE=${schemaType}, fraction=${fraction}, batchSize=${batchSize}`);
-
  if (!fs.existsSync(resolvedPath)) {
   throw new Error(`File not found: ${resolvedPath}`);
  }

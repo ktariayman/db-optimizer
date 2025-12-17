@@ -33,19 +33,20 @@ const classificationSchema = new Schema(
  { _id: false }
 );
 
+
 const timingSchema = new Schema(
  {
-  num_ingredients: Schema.Types.String,
-  num_steps: Schema.Types.Mixed,
-  fast_hits: Schema.Types.Mixed,
-  slow_hits: Schema.Types.Mixed,
-  medium_hits: Schema.Types.Mixed,
+  num_ingredients: Schema.Types.Number,
+  num_steps: Schema.Types.Number,
+  fast_hits: Schema.Types.Number,
+  slow_hits: Schema.Types.Number,
+  medium_hits: Schema.Types.Number,
   cook_speed: String,
   difficulty: String,
-  est_prep_time_min: Schema.Types.Mixed,
-  est_cook_time_min: Schema.Types.Mixed,
-  cook_time: Schema.Types.Mixed,
-  prep_time: Schema.Types.Mixed,
+  est_prep_time_min: Schema.Types.Number,
+  est_cook_time_min: Schema.Types.Number,
+  cook_time: Schema.Types.Number,
+  prep_time: Schema.Types.Number,
  },
  { _id: false }
 );
@@ -60,7 +61,7 @@ const dietSchema = new Schema(
   is_dairy_free: Boolean,
   is_gluten_free: Boolean,
   dietary_profile: [String],
-  healthiness_score: Schema.Types.Mixed,
+  healthiness_score: Schema.Types.Number,
   health_flags: [String],
   health_level: String,
  },
@@ -86,14 +87,11 @@ const recipeSchema = new Schema(
   collection: "recipes",
   strict: false,
   timestamps: false,
-  autoIndex: false, // <--- IMPORTANT
+  autoIndex: false,
  }
 
 );
 
-// ============================================================================
-// INDEXES
-// ============================================================================
 
 
 
