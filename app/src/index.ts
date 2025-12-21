@@ -52,6 +52,30 @@ app.get("/recipes/by-time", async (req, reply) => {
 });
 
 
+
+// READ: Index-friendly filter by ingredient (uses multikey index on content.ingredients)
+app.get("/recipes/by-ingredient", async (req, reply) => {
+  const q: any = req.query || {};
+  const ingredient = String(q.ingredient || "").trim();
+  const limit = Math.min(Number(q.limit || 10), 100);
+
+  if (!ingredient) {
+    return reply.code(400).send({ error: "ingredient is required" });
+  }
+
+  const col = await recipesSecondaryPreferred();
+
+  // Exact match => can use the {"content.ingredients": 1} index
+  const docs = await col
+    .find({ "content.ingredients": ingredient })
+    .limit(limit)
+    .project({ _id: 0, recipe_title: 1, "content.ingredients": 1 })
+    .toArray();
+
+  return docs;
+});
+
+
 // WRITE: Add recipe
 app.post("/recipes", async (req, reply) => {
   const body: any = req.body;
