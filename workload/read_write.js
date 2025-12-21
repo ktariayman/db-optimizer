@@ -42,7 +42,10 @@ function schemaSensitiveGet() {
 }
 
 function ingredientGet() {
-  const ingredients = ["salt", "cumin", "saffron", "oregano"]; // exact matches
+  const ingredients = ["salt and freshly ground black pepper",
+    "1 teaspoon paprika",
+    "1 tablespoon finely chopped fresh rosemary",
+    "2 tablespoons butter"]; // exact matches
   const ing = ingredients[Math.floor(Math.random() * ingredients.length)];
   const url = `${BASE_URL}${INGREDIENT_PATH}?ingredient=${encodeURIComponent(ing)}&limit=10`;
 
@@ -55,7 +58,7 @@ export default function () {
   const r = Math.random();
 
   if (r < 0.60) {
-    normalGet();              // 60%
+    normalGet();              // 60% indexed query
   } else if (r < 0.80) {
     postRecipe();             // 20% 
   } else if (r < 0.90) {
